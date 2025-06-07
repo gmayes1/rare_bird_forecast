@@ -7,3 +7,6 @@ __pycache__/
 
 # Secret / credentials files
 credentials.json
+
+# macOS Finder metadata
+.DS_Store

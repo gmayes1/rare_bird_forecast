@@ -1,0 +1,4 @@
+google-cloud-bigquery
+pandas
+scikit-learn
+xgboost

@@ -1,4 +1,9 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
+
+# Environment variables
 .env
+
+# Secret / credentials files
 credentials.json

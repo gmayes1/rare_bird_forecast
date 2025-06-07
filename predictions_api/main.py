@@ -1,4 +1,3 @@
-*** Begin File: predictions_api/main.py
 from fastapi import FastAPI, HTTPException, Query
 from typing import List, Dict
 import os

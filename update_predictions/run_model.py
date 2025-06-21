@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
 
 # Configuration via environment variables
 PROJECT = os.environ.get("GCP_PROJECT")  # e.g., "your-gcp-project-id"
@@ -62,10 +63,21 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     pipeline = Pipeline(
         steps=[
             ("preprocessor", preproc),
-            ("classifier", XGBClassifier(use_label_encoder=False, eval_metric="logloss"))
+            ("classifier",
+             XGBClassifier(
+                 use_label_encoder=False,
+                 eval_metric="logloss",
+                 n_estimators=200,
+                 learning_rate=0.1,
+                 max_depth=5,
+                 n_jobs=-1,
+             )
+            )
         ]
     )
     pipeline.fit(X, y)
+    auc = roc_auc_score(y, pipeline.predict_proba(X)[:, 1])
+    print(f"AUC: {auc:.3f}")
     return pipeline
 
 def predict_current_month(pipeline: Pipeline, df: pd.DataFrame, species: str) -> pd.DataFrame:

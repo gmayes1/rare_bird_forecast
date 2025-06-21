@@ -2,3 +2,5 @@ google-cloud-bigquery
 pandas
 scikit-learn
 xgboost
+fastapi
+uvicorn[standard]

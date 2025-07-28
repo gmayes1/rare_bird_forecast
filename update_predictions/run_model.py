@@ -1,12 +1,6 @@
 import os
 from datetime import datetime
 import pandas as pd
-from google.cloud import bigquery
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-from xgboost import XGBClassifier
-from sklearn.metrics import roc_auc_score
 
 # Configuration via environment variables
 PROJECT = os.environ.get("GCP_PROJECT")  # e.g., "your-gcp-project-id"
@@ -18,14 +12,14 @@ PREDICTION_TABLE = os.environ.get("BQ_PREDICTION_TABLE", "predictions")
 SPECIES_LIST = os.environ.get("SPECIES_LIST", "black_swift").split(",")
 FREQ_THRESHOLD = float(os.environ.get("FREQ_THRESHOLD", "0.05"))
 
-# BigQuery client
-bq_client = bigquery.Client()
-
 def fetch_aggregated_data(species: str) -> pd.DataFrame:
     """
     Query BigQuery to get per-cell monthly checklist counts and species sightings.
     Buckets cells by rounding lat/lon to 1 decimal (~11km).
     """
+    from google.cloud import bigquery
+
+    bq_client = bigquery.Client()
     table_ref = f"`{PROJECT}.{DATASET}.{CHECKLIST_TABLE}`"
     sql = f"""
     SELECT
@@ -47,8 +41,14 @@ def fetch_aggregated_data(species: str) -> pd.DataFrame:
     df["is_rare"] = df["freq"] < FREQ_THRESHOLD
     return df
 
-def train_model(df: pd.DataFrame) -> Pipeline:
+def train_model(df: pd.DataFrame):
     """Train an XGBoost classifier on historical aggregated data."""
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sklearn.preprocessing import OneHotEncoder
+    from xgboost import XGBClassifier
+    from sklearn.metrics import roc_auc_score
+
     features = ["lat", "lon", "month", "total_checklists"]
     X = df[features]
     y = df["is_rare"]
@@ -80,7 +80,7 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     print(f"AUC: {auc:.3f}")
     return pipeline
 
-def predict_current_month(pipeline: Pipeline, df: pd.DataFrame, species: str) -> pd.DataFrame:
+def predict_current_month(pipeline, df: pd.DataFrame, species: str) -> pd.DataFrame:
     """Use the trained model to predict current-month rarity probabilities."""
     current_month = datetime.utcnow().month
     df_current = df[df["month"] == current_month].copy()
@@ -95,6 +95,9 @@ def predict_current_month(pipeline: Pipeline, df: pd.DataFrame, species: str) ->
 
 def write_to_bq(df: pd.DataFrame):
     """Load the concatenated prediction DataFrame into BigQuery, replacing old table."""
+    from google.cloud import bigquery
+
+    bq_client = bigquery.Client()
     table_id = f"{PROJECT}.{DATASET}.{PREDICTION_TABLE}"
     job = bq_client.load_table_from_dataframe(
         df,
